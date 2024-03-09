@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "io.h": "c",
+        "iom168pa.h": "c",
+        "arduino.h": "c",
+        "hardwareserial.h": "c",
+        "softwareserial.h": "c",
+        "print.h": "c"
+    }
+}

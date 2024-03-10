@@ -1,5 +1,5 @@
 #include "uart_trans.h"
-#include <Print.h>
+
 void init_uart_transmission(uint16_t baud_rate)
 {
     // Configure value for register containing baud rate.
@@ -16,7 +16,7 @@ void init_uart_transmission(uint16_t baud_rate)
     USART_CTRL_STATUS_C = 0b00000110;
 }
 
-void send_char(char to_send)
+void send_char(const char to_send)
 {
     // Wait for emptied out data register
     while (!(USART_CTRL_STATUS_A & (1 << UDRE0)));
@@ -27,53 +27,66 @@ void send_string(const char* to_send)
 {
     while (*to_send)
     {
-        send_char(*to_send);
-        to_send++;
+      send_char(*to_send);
+      to_send++;
     }
 }
 
-void send_float(double number, uint8_t digits) 
-{ 
-  size_t n = 0;
-  
-  if (isnan(number)) return send_string("nan");
-  if (isinf(number)) return send_string("inf");
-  if (number > 4294967040.0) return send_string ("ovf");  // constant determined empirically
-  if (number <-4294967040.0) return send_string ("ovf");  // constant determined empirically
-  
-  // Handle negative numbers
-  if (number < 0.0)
+void send_unsigned_decimal(uint64_t to_send)
+{
+  // Max. Number has 20 digits.
+  // Additional "-" sign and end of string leads to 22 chars.
+  char buffer[22*sizeof(char)] = {};
+  // Let the resulting string begin at max. bufferposition.
+  char* decimal_string = (buffer + sizeof(buffer) - 1);
+
+  // Make sure to end the string!
+  *decimal_string = '\0';
+
+  do
   {
-     n += print('-');
-     number = -number;
-  }
-
-  // Round correctly so that print(1.999, 2) prints as "2.00"
-  double rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
-    rounding /= 10.0;
+    char digit = to_send % 10;
+    to_send /= 10;
+    *--decimal_string = digit + '0';
+  } while (to_send > 0);
   
-  number += rounding;
-
-  // Extract the integer part of the number and print it
-  unsigned long int_part = (unsigned long)number;
-  double remainder = number - (double)int_part;
-  n += print(int_part);
-
-  // Print the decimal point, but only if there are digits beyond
-  if (digits > 0) {
-    n += print('.'); 
-  }
-
-  // Extract digits from the remainder one at a time
-  while (digits-- > 0)
-  {
-    remainder *= 10.0;
-    unsigned int toPrint = (unsigned int)(remainder);
-    n += print(toPrint);
-    remainder -= toPrint; 
-  } 
-  
-  return n;
+  send_string(decimal_string);
 }
 
+void send_signed_decimal(int64_t to_send)
+{
+  if (to_send < 0)
+  {
+    to_send = -to_send;
+    send_char('-');
+    send_unsigned_decimal(to_send); 
+  }
+  else
+  {
+    send_unsigned_decimal(to_send);
+  }
+}
+
+void send_float(float to_send, uint8_t precision)
+{
+  if (to_send < 0.0)
+  {
+    to_send = -to_send;
+    send_char('-');
+  }
+  uint64_t whole = (uint64_t) to_send;
+  float frac = to_send - whole;
+  send_unsigned_decimal(whole);
+  if (frac != 0)
+  {
+    send_char('.');
+    while (precision > 0)
+    {
+      frac *= 10;
+      char digit = (uint8_t) frac;
+      frac -= digit;
+      send_char(digit + '0');
+      --precision;
+    } 
+  }
+}

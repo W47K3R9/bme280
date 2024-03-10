@@ -37,18 +37,16 @@ int main()
         {0, 0, 0, 0, 0, 0};
 
     int state = master_transmit_byte(BME280_ADDRESS, 0x88);
+    send_float(-23.14159, 4);
     if (state == 0)
     {
         db_blnk();
-        unsigned char chr = 'A';
-        send_char(chr);
     }
     state = master_receive_nbytes(BME280_ADDRESS, 
         temperature_bytes, TEMP_CONST_SIZE);
     _delay_ms(500);
     if (state == 0)
     {
-        send_string("Hello World!");
         db_blnk();
     }
     return 0;

@@ -3,11 +3,11 @@
 #include "ls_macros.h"
 #include "i2c_trans.h"
 #include "uart_trans.h"
+#include "bme280_meas.h"
 
 #define PORTB DEREF_8BIT(0x25)
 #define DDRB DEREF_8BIT(0x24)
-#define BME280_ADDRESS 0x76 // Or 0x77
-#define TEMP_CONST_SIZE 6
+#define BME280_CHIP_ID 0xD0
 
 void db_blnk(void)
 {
@@ -26,29 +26,31 @@ int main()
     // set value of 24 without prescaling.
     init_i2c(24, 0);
     init_uart_transmission((uint16_t) 9600);
-    // Temperature compensation constant 1 to 3
-    uint16_t dig_T1 = 0;
-    int16_t dig_T2 = 0;
-    int16_t dig_T3 = 0;
-    DDRB = (1 << 4);
-
-    // Storage for data on sensor
-    uint8_t temperature_bytes[TEMP_CONST_SIZE] = 
-        {0, 0, 0, 0, 0, 0};
-
-    int state = master_transmit_byte(BME280_ADDRESS, 0x88);
-    send_float(-23.14159, 4);
-    if (state == 0)
+    int state = init_sensor(1, 0, 0);
+    send_string("\nState of initialization: ");
+    send_signed_decimal(state);
+    while (1)
     {
-        db_blnk();
+        _delay_ms(500);
+        int32_t temperature = get_temp();
+        float fine_res = temperature / 100.0;
+        send_string("\nMeasuring Temp: ");
+        send_float(fine_res, 2);
+        send_string(" °C\n");
     }
-    state = master_receive_nbytes(BME280_ADDRESS, 
-        temperature_bytes, TEMP_CONST_SIZE);
-    _delay_ms(500);
-    if (state == 0)
-    {
-        db_blnk();
-    }
+    
+
+
+
+    state = master_transmit_byte(0x76, BME280_CHIP_ID);
+    send_string("\nReceiving chip ID state: ");
+    send_unsigned_decimal(state);
+    uint8_t chip_id = 0;
+    _delay_ms(1);
+    state = master_receive_byte(0x76, &chip_id);
+    send_string("\nChip ID is: ");
+    send_unsigned_decimal(chip_id);
+    
     return 0;
 }
 

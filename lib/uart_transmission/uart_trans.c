@@ -55,6 +55,8 @@ void send_unsigned_decimal(uint64_t to_send)
 
 void send_signed_decimal(int64_t to_send)
 {
+  // Only difference is the minus sign.
+  // Send it as a char and invert value to positive.
   if (to_send < 0)
   {
     to_send = -to_send;
@@ -69,13 +71,16 @@ void send_signed_decimal(int64_t to_send)
 
 void send_float(float to_send, uint8_t precision)
 {
+  // minus sign stuff
   if (to_send < 0.0)
   {
     to_send = -to_send;
     send_char('-');
   }
+  // Extract the number before the decimal point and print it.
   uint64_t whole = (uint64_t) to_send;
   float frac = to_send - whole;
+  // Extract the number after the decimal point.
   send_unsigned_decimal(whole);
   if (frac != 0)
   {

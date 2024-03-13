@@ -29,6 +29,8 @@
 
 int init_i2c(uint8_t speed, uint8_t prescale);
 int master_transmit_byte(uint8_t address, uint8_t data);
+int master_transmit_2bytes(uint8_t address, uint8_t register, uint8_t value);
+int master_receive_byte(uint8_t address, uint8_t* storage);
 int master_receive_nbytes(uint8_t address, uint8_t* storage, 
     uint8_t num_bytes);
 
